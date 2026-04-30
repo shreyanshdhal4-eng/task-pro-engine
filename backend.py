@@ -1,11 +1,6 @@
 from flask import Flask, request, jsonify
-import os
-from openai import OpenAI
 
 app = Flask(__name__)
-
-# OpenAI client (uses environment variable from Render)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Home route
 @app.route("/")
@@ -17,31 +12,31 @@ def home():
 def test():
     return "API is working!"
 
-# AI route (IMPORTANT)
+# Free AI route
 @app.route("/ask", methods=["POST"])
 def ask_ai():
-    try:
-        data = request.get_json()
+    data = request.get_json()
 
-        if not data or "message" not in data:
-            return jsonify({"error": "No message provided"}), 400
+    if not data or "message" not in data:
+        return jsonify({"error": "No message provided"}), 400
 
-        user_input = data["message"]
+    user_input = data["message"].lower()
 
-        # Call OpenAI
-        response = client.responses.create(
-            model="gpt-4.1-mini",
-            input=user_input
-        )
+    # Simple AI-like responses
+    if "hello" in user_input:
+        reply = "Hi! How can I help you?"
+    elif "task" in user_input:
+        reply = "You can add, delete, or view your tasks."
+    elif "add task" in user_input:
+        reply = "Task added successfully! (demo)"
+    elif "bye" in user_input:
+        reply = "Goodbye! Have a great day!"
+    else:
+        reply = "I'm a free AI. I understand simple messages for now."
 
-        reply = response.output[0].content[0].text
-
-        return jsonify({
-            "response": reply
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({
+        "response": reply
+    })
 
 
 # Run locally

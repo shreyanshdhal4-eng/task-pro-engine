@@ -2,6 +2,11 @@ from flask import Flask, request
 from flask_cors import CORS
 import sqlite3
 from datetime import datetime
+import os
+
+# 📧 SendGrid
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 app = Flask(__name__)
 CORS(app)
@@ -71,7 +76,7 @@ def login():
     if user:
         return {
             "token": request.json["username"],
-            "is_admin": user[5]   # 👈 IMPORTANT
+            "is_admin": user[5]
         }
 
     return {"error": "invalid"}
@@ -167,7 +172,7 @@ def stats():
     return {"total": total, "completed": done}
 
 # -------------------
-# ADMIN SYSTEM
+# 📧 ADMIN REQUEST + EMAIL
 # -------------------
 @app.route("/admin/request", methods=["POST"])
 def request_admin():
@@ -179,8 +184,28 @@ def request_admin():
     )
     conn.commit()
 
+    # SEND EMAIL
+    try:
+        message = Mail(
+            from_email=os.environ.get("FROM_EMAIL"),
+            to_emails=os.environ.get("TO_EMAIL"),
+            subject="New Admin Request",
+            html_content=f"<strong>{user}</strong> requested admin access."
+        )
+
+        sg = SendGridAPIClient(os.environ.get("SENDGRID_API_KEY"))
+        sg.send(message)
+
+        print("Email sent successfully")
+
+    except Exception as e:
+        print("Email error:", e)
+
     return {"status": "requested"}
 
+# -------------------
+# ADMIN PANEL
+# -------------------
 @app.route("/admin/requests", methods=["POST"])
 def get_requests():
     rows = cursor.execute("SELECT * FROM admin_requests").fetchall()
